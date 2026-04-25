@@ -1,0 +1,22 @@
+# ====== Python Environment ======
+.env
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.tmp
+gen_output.log
+
+# ====== Node / Frontend ======
+node_modules/
+dist/
+build/
+.npm/
+
+# ====== Editor / OS ======
+.vscode/
+.idea/
+.DS_Store
+*.swp
