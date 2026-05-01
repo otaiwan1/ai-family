@@ -5,42 +5,69 @@ import time
 import re
 import os
 
-OLLAMA_URL = "http://127.0.0.1:6728/api/generate"
-MODEL = "gemma4:e4b"
-NUM_REQUESTS_PER_QUESTION = 1000
+# OpenAI Compatible API 設定
+API_URL = "http://127.0.0.1:6728/v1/chat/completions" # 根據您的 Llama 伺服器修改 IP 或 port
+MODEL = "qwen3.5:122b" # 根據您的模型名稱修改
+NUM_REQUESTS_PER_QUESTION = 100
 OUTPUT_FILE = "questions_db.json"
 
-# 讀取 .env 中的 API Key
+# 讀取 .env 中的 API Key (用於 Gemini 正規化)
 GEMINI_API_KEY = ""
+OPENAI_API_KEY = "sk-xxxxxxxx" # 如果您的 Local Server 需要 API Key，可在此修改
+
 if os.path.exists(".env"):
     with open(".env", "r") as f:
         for line in f:
             if line.startswith("GEMINI_API_KEY="):
                 GEMINI_API_KEY = line.strip().split("=", 1)[1].strip()
+            # 如果 .env 裡面有存 OPENAI 的 KEY 也可以一併讀取
+            elif line.startswith("OPENAI_API_KEY="):
+                OPENAI_API_KEY = line.strip().split("=", 1)[1].strip()
 
 
 def get_single_answer(question):
-    prompt_text = f"你現在是一位隨機被抽中街訪的路人，在合理的前提下，可以有多一點的創意，就像是世界上各種不同的人被問到一樣。\n請簡短回答以下問題（只需回答一個名詞或極簡短詞語，不要有任何解釋或多餘的文字）：\n{question}"
+    # 1. 將設定與格式限制移至 System Prompt
+    system_prompt = """你現在參與一場街頭隨機問卷調查。
+    請發揮極大的創意與想像力，給出符合人類直覺但具備多樣性的答案。
+    【嚴格輸出限制】
+    1. 僅能輸出「一個名詞」或「一個極短的動詞片語」（1~8個字內）。
+    2. 絕對禁止任何標點符號、解釋、問候語或換行。
+    正確輸出範例：重開機
+    錯誤輸出範例：我會選擇重開機，因為..."""
+
+    # 2. User Prompt 保持極致乾淨，只負責傳遞題目
+    user_prompt = f"問題：{question}"
+        
     payload = {
         "model": MODEL,
-        "prompt": prompt_text,
-        "stream": False,
-        "options": {
-            "temperature": 1.5,
-            "top_p": 0.95
-        }
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        # 參數優化區
+        "temperature": 1.4,        # 提高隨機性，但避開語意崩壞的臨界點
+        "top_p": 0.90,             # 稍微收緊候選池，確保產出的詞彙具備合理性
+        "presence_penalty": 0.6,   # (選用) 懲罰模型產出過於常見的詞彙，激發創意
+        "stream": False
     }
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPENAI_API_KEY}"
+    }
+    
     try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=300)
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=6000)
         response.raise_for_status()
-        return response.json().get("response", "").strip()
+        # 解析 OpenAI 格式的回傳值
+        return response.json()["choices"][0]["message"]["content"].strip()
     except Exception as e:
         print(f"Error querying AI: {e}")
         return None
 
 def normalize_answers(question, raw_answers):
     answers_text = ", ".join([a for a in raw_answers if a])
-    prompt_text = f"我問了 100 個 AI 以下問題：「{question}」。\n這是他們的回覆清單：\n{answers_text}\n\n請幫我將意思相似或相同的答案合併（例如「蘋果」、「紅蘋果」、「Apple」合併為「蘋果」）。\n然後統計每個答案出現的次數，並列出出現次數最高的 Top 5 答案。\n\n務必遵守以下規範：\n1. 請**只**回傳 JSON 格式的陣列。\n2. 絕對不要有其他 Markdown 標記 (如 ```json ...) 或是其他說明文字。\n3. 欄位只能包含 \"answer\" 和 \"count\"。"
+    prompt_text = f"我問了 100 個 AI 以下問題：「{question}」。\n這是他們的回覆清單：\n{answers_text}\n\n請幫我將意思相似或相同的答案合併（例如「蘋果」、「紅蘋果」、「Apple」合併為「蘋果」）。\n然後統計每個答案出現的次數，並列出出現次數最高的 Top 4-8 答案。\n\n務必遵守以下規範：\n1. 請**只**回傳 JSON 格式的陣列。\n2. 絕對不要有其他 Markdown 標記 (如 ```json ...) 或是其他說明文字。\n3. 欄位只能包含 \"answer\" 和 \"count\"。"
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key={GEMINI_API_KEY}"
     for attempt in range(3):
@@ -83,7 +110,9 @@ def process_question(question, db_entry, db_map):
     
     if needed > 0:
         print(f"[{question}] 準備補齊剩餘的 {needed} 次回答 (已有 {len(raw_answers)} 次)...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        # 因應 llama.cpp 搭配 72 執行緒的硬體配置，大幅提高並發數量
+        max_threads = min(4, needed)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
             futures = {executor.submit(get_single_answer, question): i for i in range(needed)}
             count_since_save = 0
             for future in concurrent.futures.as_completed(futures):
@@ -111,12 +140,11 @@ def process_question(question, db_entry, db_map):
         print(f"[{question}] 本題已正規化過，跳過此步驟。")
 
 def main():
-    print("=== AI Family Feud 題庫生成腳本開始 ===")
+    print("=== AI Family Feud 題庫生成腳本開始 (OpenAI API 版) ===")
     
     if not GEMINI_API_KEY:
         print("警告: 找不到 .env 檔案或 GEMINI_API_KEY 未設定，Gemini 正規化將會失敗。")
         
-    # read problem from questions.txt here!
     global questions
     questions = []
     if os.path.exists("questions.txt"):
