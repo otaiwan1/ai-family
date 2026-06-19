@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import socket from './socket';
+import socket, { connectAuthenticatedSocket } from './socket';
+import AdminView from './AdminView';
+import AuthGate from './AuthGate';
 
 interface Answer { answer: string; count: number; }
 interface QuestionData { question: string; answers: Answer[]; }
+interface FullQuestion {
+  question: string;
+  top_answers: Answer[];
+  raw_answers?: string[];
+  raw_answers_count?: number;
+}
 interface GameState {
-  current_question_data: QuestionData | null;
+  current_question_data?: QuestionData | null;
   current_question_idx: number;
   revealed_answers: number[];
   strikes: number;
   team_a_score: number;
   team_b_score: number;
   current_pool: number;
-  questions?: any[];
+  questions?: FullQuestion[];
 }
 
 const AudienceView = () => {
@@ -20,6 +28,7 @@ const AudienceView = () => {
   const [playStrikeAnim, setPlayStrikeAnim] = useState(false);
 
   useEffect(() => {
+    connectAuthenticatedSocket();
     socket.on('state_update', (state: GameState) => {
        console.log("Got audience update:", state);
        setGameState(state);
@@ -35,6 +44,7 @@ const AudienceView = () => {
     return () => { 
        socket.off('state_update'); 
        socket.off('play_sound');
+       socket.disconnect();
     };
   }, []);
 
@@ -95,10 +105,10 @@ const AudienceView = () => {
         </div>
 
         {/* Big Strike Overlay / Animation */}
-        {(gameState.strikes > 0 || playStrikeAnim) && (
+        {playStrikeAnim && gameState.strikes > 0 && (
             <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none mt-20">
               <div className="bg-black/85 px-20 py-12 rounded-[5rem] border-8 border-red-600 shadow-[0_0_100px_#ff0000] flex gap-12 animate-pulse scale-110">
-                  {Array(Math.max(gameState.strikes, playStrikeAnim ? gameState.strikes : 0)).fill('X').map((x, i) => (
+                  {Array(gameState.strikes).fill('X').map((x, i) => (
                     <span key={i} className="text-[18rem] font-bold text-red-600 leading-none" style={{textShadow: "0 0 40px #ff0000"}}>{x}</span>
                   ))}
               </div>
@@ -113,14 +123,18 @@ const HostView = () => {
   const [hostState, setHostState] = useState<GameState | null>(null);
   
   useEffect(() => {
-    socket.on('host_state_update', (data) => {
+    connectAuthenticatedSocket();
+    socket.on('host_state_update', (data: GameState) => {
         console.log("Got host update:", data);
         setHostState(data);
     });
     // Request state manually too, in case socket was already connected!
     socket.emit('reload_database'); // Force an update just in case
 
-    return () => { socket.off('host_state_update'); };
+    return () => {
+      socket.off('host_state_update');
+      socket.disconnect();
+    };
   }, []);
 
   if (!hostState || !hostState.questions || hostState.questions.length === 0) {
@@ -145,10 +159,19 @@ const HostView = () => {
            
            <div className="bg-zinc-950 p-4 border border-zinc-800 rounded">
              <h3 className="font-bold text-zinc-400 text-sm tracking-wider mb-3">NAVIGATION</h3>
-             <div className="flex gap-3">
+             <div className="flex gap-3 mb-3">
                 <button onClick={() => socket.emit('prev_question')} className="flex-1 bg-zinc-800 hover:bg-zinc-700 py-3 rounded font-bold border border-zinc-700 text-sm">PREV Q</button>
                 <button onClick={() => socket.emit('next_question')} className="flex-1 bg-blue-700 hover:bg-blue-600 py-3 rounded font-bold border border-blue-500 shadow-[0_0_15px_rgba(0,100,255,0.4)] text-sm">NEXT Q</button>
              </div>
+             <select 
+               className="w-full bg-zinc-800 text-zinc-200 border border-zinc-700 rounded p-2 text-sm"
+               value={hostState.current_question_idx}
+               onChange={(e) => socket.emit('goto_question', { idx: parseInt(e.target.value) })}
+             >
+               {hostState.questions.map((q: FullQuestion, idx: number) => (
+                 <option key={idx} value={idx}>Q{idx + 1}: {q.question}</option>
+               ))}
+             </select>
            </div>
 
            <div className="bg-zinc-950 p-4 border border-zinc-800 rounded relative overflow-hidden">
@@ -171,18 +194,22 @@ const HostView = () => {
              {/* Score modifier controls purely for manual adjustment */}
               <div className="mt-4 border-t border-zinc-800 pt-4 flex gap-4 text-center">
                  <div className="w-1/2">
-                   <div className="text-xs text-zinc-500 mb-1">Team A Adjust</div>
-                   <div className="flex gap-1 justify-center">
-                      <button onClick={()=>socket.emit('modify_score', {team: 'team_a', amount: -10})} className="px-2 py-1 bg-zinc-800 rounded text-xs">-10</button>
-                      <button onClick={()=>socket.emit('modify_score', {team: 'team_a', amount: 10})} className="px-2 py-1 bg-zinc-800 rounded text-xs">+10</button>
-                   </div>
+                   <div className="text-xs text-zinc-500 mb-1">Set Team A Score</div>
+                   <input 
+                     type="number" 
+                     className="w-full bg-zinc-800 text-center text-white py-1 rounded border border-zinc-700 text-sm" 
+                     value={hostState.team_a_score || 0} 
+                     onChange={(e) => socket.emit('set_score', {team: 'team_a', score: parseInt(e.target.value) || 0})}
+                   />
                  </div>
                  <div className="w-1/2">
-                   <div className="text-xs text-zinc-500 mb-1">Team B Adjust</div>
-                   <div className="flex gap-1 justify-center">
-                      <button onClick={()=>socket.emit('modify_score', {team: 'team_b', amount: -10})} className="px-2 py-1 bg-zinc-800 rounded text-xs">-10</button>
-                      <button onClick={()=>socket.emit('modify_score', {team: 'team_b', amount: 10})} className="px-2 py-1 bg-zinc-800 rounded text-xs">+10</button>
-                   </div>
+                   <div className="text-xs text-zinc-500 mb-1">Set Team B Score</div>
+                   <input 
+                     type="number" 
+                     className="w-full bg-zinc-800 text-center text-white py-1 rounded border border-zinc-700 text-sm" 
+                     value={hostState.team_b_score || 0} 
+                     onChange={(e) => socket.emit('set_score', {team: 'team_b', score: parseInt(e.target.value) || 0})}
+                   />
                  </div>
               </div>
            </div>
@@ -201,7 +228,7 @@ const HostView = () => {
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {currentQ.top_answers.map((ans: any, idx: number) => {
+              {currentQ.top_answers.map((ans: Answer, idx: number) => {
                  const revealed = hostState.revealed_answers.includes(idx);
                  return (
                    <button 
@@ -253,11 +280,16 @@ function App() {
                     <span className="text-3xl text-white group-hover:text-zinc-300">🎤 Host Controller</span>
                     <span className="text-sm text-zinc-400">Open Game Panel</span>
                  </Link>
+                 <Link to="/admin" target="_blank" className="group px-12 py-6 bg-emerald-900 rounded-2xl font-bold border-2 border-emerald-600 hover:border-emerald-400 hover:bg-emerald-800 shadow-xl transition-all hover:-translate-y-2 flex flex-col items-center gap-2">
+                    <span className="text-3xl text-white group-hover:text-emerald-200">Admin Panel</span>
+                    <span className="text-sm text-emerald-300">Edit Questions DB</span>
+                 </Link>
               </div>
            </div>
         } />
-        <Route path="/audience" element={<AudienceView />} />
-        <Route path="/host" element={<HostView />} />
+        <Route path="/audience" element={<AuthGate title="Audience Screen"><AudienceView /></AuthGate>} />
+        <Route path="/host" element={<AuthGate title="Host Controller"><HostView /></AuthGate>} />
+        <Route path="/admin" element={<AuthGate title="Admin Panel"><AdminView /></AuthGate>} />
       </Routes>
     </Router>
   );

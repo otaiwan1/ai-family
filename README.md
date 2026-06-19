@@ -23,3 +23,79 @@
 ## 為什麼好玩？
 - **探索 AI 的偏見與常理**：玩家除了要用人類常理思考，還要試著揣摩「AI 的腦迴路」，這可能會產生令人意外、好笑的答案分佈。
 - **結合隨機性**：有些 AI 答案可能非常荒謬，這將作為該遊戲的「彩蛋」。
+
+## 題庫生成
+
+目前題庫生成統一使用 OpenRouter。請在專案根目錄的 `.env` 放入：
+
+```bash
+OPENROUTER_API_KEY=你的_key
+```
+
+模型與每題詢問次數寫在 `openrouter_models.json`。預設每題共問 100 次，分散到：
+
+- `openai/gpt-5.5`: 17 次
+- `deepseek/deepseek-v4-flash`: 17 次
+- `minimax/minimax-m3`: 17 次
+- `anthropic/claude-sonnet-4.6`: 17 次
+- `google/gemini-3.5-flash`: 16 次
+- `qwen/qwen3.7-plus`: 16 次
+
+先檢查模型是否存在：
+
+```bash
+python generate_questions.py --validate-models
+```
+
+開始或續跑題庫：
+
+```bash
+python generate_questions.py
+```
+
+預設速度設定在 `openrouter_models.json` 的 `defaults`：
+
+- `concurrency`: 同時執行的 worker 數，預設 8。
+- `requests_per_minute`: 本機端主動節流，預設 60 requests/minute。
+
+也可以臨時用命令列覆蓋：
+
+```bash
+python generate_questions.py --concurrency 12 --rpm 120
+```
+
+OpenRouter 若回傳 429，腳本會依照 `Retry-After` 等待後重試。若使用 `:free` 模型，OpenRouter 官方限制目前是 20 requests/minute，且每日額度會受帳戶購買 credits 影響；付費模型的實際限制由 OpenRouter 與上游 provider 管理。
+
+生成過程每取得一筆答案就會重新讀取 `questions_db.json` 並只更新當前題目，所以你可以同時手動修改其他已完成題目的答案或分數，不會被腳本用舊快取覆蓋。
+
+## 啟動 Web 遊戲
+
+正式使用只需要一個 port。腳本會先 build React 前端，再由 FastAPI 在同一個 port 提供前端、`/api/*` 與 Socket.IO。
+
+```bash
+PORT=8000 ./start_web.sh
+```
+
+開啟：
+
+- `http://localhost:8000/host`
+- `http://localhost:8000/audience`
+- `http://localhost:8000/admin`
+
+## Admin Panel
+
+`/admin` 可以直接管理 `questions_db.json`：
+
+- 修改題目、上榜答案、排序與分數分布。
+- 新增或刪除題目；每次成功修改前都會自動備份至 `backups/`。
+- 搜尋題目與答案、查看 raw answers 和各模型回答數。
+- 匯出目前的 `questions_db.json`。
+- 在背景補齊 AI 回答，可選擇重新計算分布或先清空舊回答；生成期間仍可編輯其他題目。
+
+Host、Audience 與 Admin Panel 都需要先輸入存取密碼。預設密碼是 `AI2026`，可在 `.env` 覆寫：
+
+```bash
+ACCESS_PASSWORD=請換成一段足夠長的存取密碼
+```
+
+登入成功後 token 只保存在目前分頁的 session storage；服務重新啟動後需要重新登入。
