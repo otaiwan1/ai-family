@@ -21955,5 +21955,654 @@
     "created_at": "2026-06-19T02:33:26.469865+00:00",
     "updated_at": "2026-06-19T02:37:13.124046+00:00",
     "normalized_at": "2026-06-19T02:37:13.124018+00:00"
+  },
+  {
+    "question": "說出一個在敷衍其他人時，最常回答的話。",
+    "raw_answers": [
+      "喔喔這樣啊",
+      "好啦",
+      "好喔",
+      "好哦",
+      "好喔",
+      "喔喔 好",
+      "喔好喔",
+      "好喔",
+      "嗯嗯喔喔好喔",
+      "好啦好啦",
+      "喔喔這樣喔",
+      "再說吧",
+      "嗯嗯喔喔好喔",
+      "好啦好啦",
+      "喔是喔",
+      "喔對對對",
+      "好啊好啊",
+      "好啦好啦",
+      "喔是喔",
+      "喔是喔",
+      "好啦",
+      "嗯嗯",
+      "喔對對對",
+      "喔是喔",
+      "嗯好喔",
+      "好喔",
+      "嗯嗯",
+      "好啦",
+      "好啦好啦",
+      "喔對對對",
+      "好喔",
+      "好喔",
+      "隨便",
+      "嗯嗯",
+      "好啦",
+      "喔喔好的",
+      "喔是喔好啦",
+      "喔對對對",
+      "喔對對對",
+      "好啊好啊",
+      "隨便",
+      "喔是喔",
+      "喔喔好喔",
+      "好喔",
+      "好喔",
+      "好啦好啦",
+      "隨便",
+      "嗯嗯",
+      "好啦知道啦",
+      "好喔",
+      "隨便",
+      "隨便",
+      "喔是喔",
+      "哈哈是喔",
+      "喔對對對",
+      "喔喔好",
+      "喔是喔",
+      "喔是喔真的假的",
+      "嗯嗯",
+      "好啦好啦",
+      "隨便",
+      "好喔",
+      "喔喔",
+      "嗯嗯",
+      "喔是喔",
+      "喔是喔",
+      "好啊好啊",
+      "好喔",
+      "好喔",
+      "喔是喔真的假的",
+      "嗯好喔",
+      "好啦好啦",
+      "好啦好啦",
+      "好喔",
+      "好啦",
+      "嗯嗯",
+      "好啦好啦",
+      "嗯嗯喔喔好喔",
+      "好喔",
+      "蛤真的喔",
+      "好啦",
+      "好喔",
+      "嗯嗯",
+      "好好好",
+      "好啦好啦",
+      "好喔",
+      "喔喔好喔",
+      "嗯對啊",
+      "隨便",
+      "喔好好好",
+      "哦是喔",
+      "隨便",
+      "恩恩喔喔",
+      "好喔",
+      "隨便",
+      "好喔",
+      "喔喔好",
+      "喔喔好喔",
+      "好啦好啦",
+      "好啦好啦"
+    ],
+    "raw_answer_records": [
+      {
+        "answer": "喔喔這樣啊",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:23:16.573761+00:00"
+      },
+      {
+        "answer": "好啦",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:23:17.599208+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:23:18.189100+00:00"
+      },
+      {
+        "answer": "好哦",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:23:19.456440+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:23:20.289302+00:00"
+      },
+      {
+        "answer": "喔喔 好",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:23:20.816825+00:00"
+      },
+      {
+        "answer": "喔好喔",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:23:23.492384+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:23:24.484681+00:00"
+      },
+      {
+        "answer": "嗯嗯喔喔好喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:23:25.028451+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:23:25.172768+00:00"
+      },
+      {
+        "answer": "喔喔這樣喔",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:23:27.447848+00:00"
+      },
+      {
+        "answer": "再說吧",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:23:28.032764+00:00"
+      },
+      {
+        "answer": "嗯嗯喔喔好喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:23:29.135990+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:23:30.756809+00:00"
+      },
+      {
+        "answer": "喔是喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:23:31.201100+00:00"
+      },
+      {
+        "answer": "喔對對對",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:23:31.257081+00:00"
+      },
+      {
+        "answer": "好啊好啊",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:23:34.017831+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:23:34.181426+00:00"
+      },
+      {
+        "answer": "喔是喔",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:23:35.164911+00:00"
+      },
+      {
+        "answer": "喔是喔",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:23:37.048798+00:00"
+      },
+      {
+        "answer": "好啦",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:23:37.862551+00:00"
+      },
+      {
+        "answer": "嗯嗯",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:23:38.707213+00:00"
+      },
+      {
+        "answer": "喔對對對",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:23:40.933560+00:00"
+      },
+      {
+        "answer": "喔是喔",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:23:40.995326+00:00"
+      },
+      {
+        "answer": "嗯好喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:23:41.155501+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:23:41.573043+00:00"
+      },
+      {
+        "answer": "嗯嗯",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:23:43.188600+00:00"
+      },
+      {
+        "answer": "好啦",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:23:44.269176+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:23:45.708648+00:00"
+      },
+      {
+        "answer": "喔對對對",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:23:45.869129+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:23:46.126472+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:23:46.818220+00:00"
+      },
+      {
+        "answer": "隨便",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:23:47.392207+00:00"
+      },
+      {
+        "answer": "嗯嗯",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:23:49.341963+00:00"
+      },
+      {
+        "answer": "好啦",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:23:49.948560+00:00"
+      },
+      {
+        "answer": "喔喔好的",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:23:50.916881+00:00"
+      },
+      {
+        "answer": "喔是喔好啦",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:23:52.296563+00:00"
+      },
+      {
+        "answer": "喔對對對",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:23:53.890372+00:00"
+      },
+      {
+        "answer": "喔對對對",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:23:54.963465+00:00"
+      },
+      {
+        "answer": "好啊好啊",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:23:57.353038+00:00"
+      },
+      {
+        "answer": "隨便",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:23:57.831662+00:00"
+      },
+      {
+        "answer": "喔是喔",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:23:58.732807+00:00"
+      },
+      {
+        "answer": "喔喔好喔",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:23:58.927737+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:00.162311+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:00.375476+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:01.828967+00:00"
+      },
+      {
+        "answer": "隨便",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:24:02.767152+00:00"
+      },
+      {
+        "answer": "嗯嗯",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:02.797994+00:00"
+      },
+      {
+        "answer": "好啦知道啦",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:24:03.933770+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:04.934474+00:00"
+      },
+      {
+        "answer": "隨便",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:24:05.963250+00:00"
+      },
+      {
+        "answer": "隨便",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:24:06.853579+00:00"
+      },
+      {
+        "answer": "喔是喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:24:07.974167+00:00"
+      },
+      {
+        "answer": "哈哈是喔",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:09.126528+00:00"
+      },
+      {
+        "answer": "喔對對對",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:09.997435+00:00"
+      },
+      {
+        "answer": "喔喔好",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:24:12.091628+00:00"
+      },
+      {
+        "answer": "喔是喔",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:13.153022+00:00"
+      },
+      {
+        "answer": "喔是喔真的假的",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:24:14.116879+00:00"
+      },
+      {
+        "answer": "嗯嗯",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:15.236186+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:17.106812+00:00"
+      },
+      {
+        "answer": "隨便",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:17.748600+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:18.305460+00:00"
+      },
+      {
+        "answer": "喔喔",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:24:19.446738+00:00"
+      },
+      {
+        "answer": "嗯嗯",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:20.490522+00:00"
+      },
+      {
+        "answer": "喔是喔",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:24:21.138168+00:00"
+      },
+      {
+        "answer": "喔是喔",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:24:21.342940+00:00"
+      },
+      {
+        "answer": "好啊好啊",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:22.507576+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:24:23.022944+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:24.161670+00:00"
+      },
+      {
+        "answer": "喔是喔真的假的",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:24:25.095430+00:00"
+      },
+      {
+        "answer": "嗯好喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:24:27.103126+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:27.411939+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:30.353540+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:30.901913+00:00"
+      },
+      {
+        "answer": "好啦",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:30.992886+00:00"
+      },
+      {
+        "answer": "嗯嗯",
+        "model": "openai/gpt-5.5",
+        "created_at": "2026-06-21T06:24:32.738858+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:33.606632+00:00"
+      },
+      {
+        "answer": "嗯嗯喔喔好喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:24:35.204262+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:35.613150+00:00"
+      },
+      {
+        "answer": "蛤真的喔",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:24:37.007042+00:00"
+      },
+      {
+        "answer": "好啦",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:37.702551+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:38.028556+00:00"
+      },
+      {
+        "answer": "嗯嗯",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:24:39.766636+00:00"
+      },
+      {
+        "answer": "好好好",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:41.042015+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:41.900522+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:24:42.135862+00:00"
+      },
+      {
+        "answer": "喔喔好喔",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:24:43.348632+00:00"
+      },
+      {
+        "answer": "嗯對啊",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:24:43.999915+00:00"
+      },
+      {
+        "answer": "隨便",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:47.149650+00:00"
+      },
+      {
+        "answer": "喔好好好",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:47.875195+00:00"
+      },
+      {
+        "answer": "哦是喔",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:24:48.219160+00:00"
+      },
+      {
+        "answer": "隨便",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:49.810069+00:00"
+      },
+      {
+        "answer": "恩恩喔喔",
+        "model": "google/gemini-3.5-flash",
+        "created_at": "2026-06-21T06:24:50.049392+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:24:50.099532+00:00"
+      },
+      {
+        "answer": "隨便",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:50.558631+00:00"
+      },
+      {
+        "answer": "好喔",
+        "model": "deepseek/deepseek-v4-flash",
+        "created_at": "2026-06-21T06:24:51.100339+00:00"
+      },
+      {
+        "answer": "喔喔好",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:24:52.029505+00:00"
+      },
+      {
+        "answer": "喔喔好喔",
+        "model": "qwen/qwen3.7-plus",
+        "created_at": "2026-06-21T06:24:53.965837+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "anthropic/claude-sonnet-4.6",
+        "created_at": "2026-06-21T06:24:54.643438+00:00"
+      },
+      {
+        "answer": "好啦好啦",
+        "model": "minimax/minimax-m3",
+        "created_at": "2026-06-21T06:24:55.238526+00:00"
+      }
+    ],
+    "raw_answers_count": 100,
+    "model_counts": {
+      "qwen/qwen3.7-plus": 16,
+      "openai/gpt-5.5": 17,
+      "google/gemini-3.5-flash": 16,
+      "deepseek/deepseek-v4-flash": 17,
+      "minimax/minimax-m3": 17,
+      "anthropic/claude-sonnet-4.6": 17
+    },
+    "top_answers": [
+      {
+        "answer": "好喔",
+        "count": 27
+      },
+      {
+        "answer": "喔是喔",
+        "count": 15
+      },
+      {
+        "answer": "好啦",
+        "count": 15
+      },
+      {
+        "answer": "嗯嗯",
+        "count": 12
+      },
+      {
+        "answer": "喔對對對",
+        "count": 7
+      },
+      {
+        "answer": "隨便",
+        "count": 7
+      },
+      {
+        "answer": "好啊好啊",
+        "count": 3
+      }
+    ],
+    "created_at": "2026-06-21T06:23:11.416097+00:00",
+    "updated_at": "2026-06-21T06:24:57.324848+00:00",
+    "normalized_at": "2026-06-21T06:24:57.324822+00:00"
   }
 ]

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.venv
+**/venv
+**/__pycache__
+**/*.pyc
+client/node_modules
+client/dist
+backups
+gen_output.log
+questions_db(ver*).json
+questions(old).txt
+*.png
+*.log

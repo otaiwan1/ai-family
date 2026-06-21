@@ -220,6 +220,13 @@ async def reveal_answer(sid, answer_idx):
 async def show_strike(sid):
     game_state["strikes"] = min(3, game_state["strikes"] + 1)
     await _broadcast_state()
+    await sio.emit("strike_overlay", {"count": game_state["strikes"]})
+    await sio.emit("play_sound", "strike")
+
+
+@sio.event
+async def show_single_strike(sid):
+    await sio.emit("strike_overlay", {"count": 1})
     await sio.emit("play_sound", "strike")
 
 

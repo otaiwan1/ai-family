@@ -99,3 +99,62 @@ ACCESS_PASSWORD=請換成一段足夠長的存取密碼
 ```
 
 登入成功後 token 只保存在目前分頁的 session storage；服務重新啟動後需要重新登入。
+
+## Docker 部署
+
+Docker image 使用 multi-stage build：Node 階段負責編譯 React，最終 image 只保留 Python server、前端靜態檔與題庫生成工具。
+
+先在專案根目錄建立或更新 `.env`：
+
+```bash
+ACCESS_PASSWORD=請換成正式密碼
+OPENROUTER_API_KEY=你的_OpenRouter_Key
+```
+
+建置並在背景啟動：
+
+```bash
+docker compose up -d --build
+```
+
+預設網址：
+
+- `http://localhost:8000/host`
+- `http://localhost:8000/audience`
+- `http://localhost:8000/admin`
+
+改用其他對外 port：
+
+```bash
+AI_FAMILY_PORT=8080 docker compose up -d
+```
+
+查看狀態與 logs：
+
+```bash
+docker compose ps
+docker compose logs -f ai-family
+```
+
+更新程式：
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+停止服務但保留題庫：
+
+```bash
+docker compose down
+```
+
+題庫與 Admin 自動備份都存放在 named volume `ai-family-data` 的 `/data`。備份目前題庫到主機：
+
+```bash
+docker compose exec -T ai-family cat /data/questions_db.json > questions_db.backup.json
+```
+
+第一次啟動空 volume 時，image 內的 `questions_db.json` 會複製到 `/data/questions_db.json`。之後重新 build 不會覆蓋 volume 裡經 Admin 修改的資料。只有確定要刪除所有容器資料時才使用 `docker compose down -v`。
+
+Audience 登入後會顯示「啟用音效並進入題板」，必須點擊一次讓瀏覽器允許答對與 X 音效播放。

@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Volume2, XCircle } from 'lucide-react';
 import socket, { connectAuthenticatedSocket } from './socket';
 import AdminView from './AdminView';
 import AuthGate from './AuthGate';
+import { playCorrectSound, playStrikeSound, unlockGameAudio } from './gameSounds';
 
 interface Answer { answer: string; count: number; }
 interface QuestionData { question: string; answers: Answer[]; }
@@ -26,6 +28,10 @@ interface GameState {
 const AudienceView = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [playStrikeAnim, setPlayStrikeAnim] = useState(false);
+  const [strikeOverlayCount, setStrikeOverlayCount] = useState(0);
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [audioError, setAudioError] = useState('');
+  const strikeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     connectAuthenticatedSocket();
@@ -34,19 +40,57 @@ const AudienceView = () => {
        setGameState(state);
     });
     
+    socket.on('strike_overlay', (payload: { count?: number }) => {
+       const count = Math.max(1, Math.min(3, Number(payload?.count) || 1));
+       if (strikeTimerRef.current !== null) window.clearTimeout(strikeTimerRef.current);
+       setStrikeOverlayCount(count);
+       setPlayStrikeAnim(true);
+       strikeTimerRef.current = window.setTimeout(() => {
+         setPlayStrikeAnim(false);
+         strikeTimerRef.current = null;
+       }, 2000);
+    });
+
     socket.on('play_sound', (type: string) => {
-       if (type === 'strike') {
-          setPlayStrikeAnim(true);
-          setTimeout(() => setPlayStrikeAnim(false), 2000);
-       }
+       if (type === 'strike') void playStrikeSound();
+       if (type === 'ding') void playCorrectSound();
     });
 
     return () => { 
        socket.off('state_update'); 
+       socket.off('strike_overlay');
        socket.off('play_sound');
+       if (strikeTimerRef.current !== null) window.clearTimeout(strikeTimerRef.current);
        socket.disconnect();
     };
   }, []);
+
+  async function enableAudienceAudio() {
+    const unlocked = await unlockGameAudio();
+    if (!unlocked) {
+      setAudioError('瀏覽器仍封鎖音效，請確認此分頁沒有被設為靜音後再試一次。');
+      return;
+    }
+    setAudioError('');
+    setAudioEnabled(true);
+    await playCorrectSound();
+  }
+
+  if (!audioEnabled) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-brand-dark px-6 text-white">
+        <div className="w-full max-w-md border-2 border-[#00d2ff] bg-[#071a35] p-8 text-center shadow-[0_0_40px_rgba(0,210,255,0.35)]">
+          <Volume2 className="mx-auto h-12 w-12 text-[#ffcc00]" />
+          <h1 className="mt-5 text-3xl font-black">Audience 音效</h1>
+          <p className="mt-3 text-base leading-7 text-blue-200">瀏覽器需要一次點擊才能播放答對與 X 的遊戲音效。</p>
+          {audioError && <p className="mt-3 text-sm font-semibold text-red-300">{audioError}</p>}
+          <button type="button" onClick={() => void enableAudienceAudio()} className="mt-6 flex w-full items-center justify-center gap-2 bg-[#137c70] px-5 py-4 text-lg font-bold hover:bg-[#189486]">
+            <Volume2 className="h-5 w-5" /> 啟用音效並進入題板
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!gameState || !gameState.current_question_data) 
     return <div className="h-screen w-screen bg-brand-dark text-white flex items-center justify-center text-4xl glow-text animate-pulse">Waiting for Host to Start...</div>;
@@ -105,10 +149,10 @@ const AudienceView = () => {
         </div>
 
         {/* Big Strike Overlay / Animation */}
-        {playStrikeAnim && gameState.strikes > 0 && (
+        {playStrikeAnim && strikeOverlayCount > 0 && (
             <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none mt-20">
               <div className="bg-black/85 px-20 py-12 rounded-[5rem] border-8 border-red-600 shadow-[0_0_100px_#ff0000] flex gap-12 animate-pulse scale-110">
-                  {Array(gameState.strikes).fill('X').map((x, i) => (
+                  {Array(strikeOverlayCount).fill('X').map((x, i) => (
                     <span key={i} className="text-[18rem] font-bold text-red-600 leading-none" style={{textShadow: "0 0 40px #ff0000"}}>{x}</span>
                   ))}
               </div>
@@ -180,6 +224,9 @@ const HostView = () => {
              <h3 className="font-bold text-red-500 text-sm tracking-wider mb-3">STRIKES (Current: {hostState.strikes}/3)</h3>
              <div className="flex flex-col gap-3">
                 <button onClick={() => socket.emit('show_strike')} className="w-full bg-red-700 hover:bg-red-600 py-4 rounded font-bold shadow-[0_0_15px_rgba(200,0,0,0.5)] border border-red-500 text-lg">GIVE STRIKE (X)</button>
+                <button onClick={() => socket.emit('show_single_strike')} className="flex w-full items-center justify-center gap-2 rounded border border-amber-500 bg-amber-950 py-3 font-bold text-amber-200 hover:bg-amber-900">
+                  <XCircle className="h-5 w-5" /> SHOW X (NO STRIKE)
+                </button>
                 <button onClick={() => socket.emit('clear_strikes')} className="w-full bg-zinc-800 hover:bg-zinc-700 py-2 rounded font-bold border border-zinc-700">Clear Strikes</button>
              </div>
            </div>

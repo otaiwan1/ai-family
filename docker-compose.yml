@@ -1,0 +1,20 @@
+services:
+  ai-family:
+    build:
+      context: .
+    image: ai-family-feud:latest
+    container_name: ai-family-feud
+    ports:
+      - "${AI_FAMILY_PORT:-8000}:8000"
+    environment:
+      ACCESS_PASSWORD: "${ACCESS_PASSWORD:-AI2026}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      QUESTIONS_DB_PATH: /data/questions_db.json
+      QUESTIONS_BACKUP_DIR: /data/backups
+      OPENROUTER_MODELS_PATH: /app/openrouter_models.json
+    volumes:
+      - ai-family-data:/data
+    restart: unless-stopped
+
+volumes:
+  ai-family-data:

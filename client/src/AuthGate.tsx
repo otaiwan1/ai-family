@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { KeyRound, Loader2, LockKeyhole } from 'lucide-react';
 import { authenticatedFetch, clearAccessToken, getAccessToken, setAccessToken } from './auth';
+import { unlockGameAudio } from './gameSounds';
 
 interface AuthGateProps {
   children: ReactNode;
@@ -34,6 +35,7 @@ const AuthGate = ({ children, title }: AuthGateProps) => {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    void unlockGameAudio();
     setSubmitting(true);
     setError('');
     try {
