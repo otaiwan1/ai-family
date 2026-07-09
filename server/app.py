@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import random
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,8 +31,10 @@ from generate_questions import (  # noqa: E402
     load_db,
     load_env_file,
     mutate_db,
+    normalize_answers,
     process_question,
     read_json,
+    replace_top_answers,
 )
 
 load_env_file(ROOT_DIR / ".env")
@@ -61,6 +64,10 @@ game_state = {
 
 generation_job: dict[str, Any] = {
     "status": "idle",
+    "current": None,
+    "queue": [],
+    "completed_jobs": [],
+    "failed_jobs": [],
     "question": None,
     "started_at": None,
     "finished_at": None,
@@ -68,6 +75,8 @@ generation_job: dict[str, Any] = {
     "raw_answers_count": None,
     "target_count": None,
 }
+generation_worker_task: asyncio.Task | None = None
+generation_queue_lock = asyncio.Lock()
 active_sessions: set[str] = set()
 
 
@@ -140,7 +149,8 @@ def validate_index(db: list[dict[str, Any]], index: int) -> dict[str, Any]:
 
 
 def ensure_question_not_running(question: str) -> None:
-    if generation_job["status"] == "running" and generation_job["question"] == question:
+    current = generation_job.get("current") or {}
+    if current.get("status") == "running" and current.get("question") == question:
         raise HTTPException(status_code=409, detail="This question is currently being generated")
 
 
@@ -275,6 +285,21 @@ async def goto_question(sid, data):
     if 0 <= idx < len(game_state["questions"]):
         game_state["current_question_idx"] = idx
         _reset_round_state()
+    await _broadcast_state()
+
+
+@sio.event
+async def random_question(sid):
+    question_count = len(game_state["questions"])
+    if question_count == 0:
+        await _broadcast_state()
+        return
+    if question_count == 1:
+        game_state["current_question_idx"] = 0
+    else:
+        choices = [idx for idx in range(question_count) if idx != game_state["current_question_idx"]]
+        game_state["current_question_idx"] = random.choice(choices)
+    _reset_round_state()
     await _broadcast_state()
 
 
@@ -416,6 +441,84 @@ async def export_admin_database():
     return FileResponse(DB_PATH, filename="questions_db.json", media_type="application/json")
 
 
+def payload_to_dict(payload: FillAnswersPayload) -> dict[str, Any]:
+    if hasattr(payload, "model_dump"):
+        return payload.model_dump()
+    return payload.dict()
+
+
+def make_generation_queue_item(
+    job_type: str,
+    index: int,
+    question: str,
+    payload: FillAnswersPayload,
+    expected_updated_at: str | None = None,
+) -> dict[str, Any]:
+    payload_data = payload_to_dict(payload)
+    payload_data.pop("indexes", None)
+    return {
+        "id": secrets.token_urlsafe(8),
+        "type": job_type,
+        "status": "queued",
+        "index": index,
+        "question": question,
+        "queued_at": now_iso(),
+        "started_at": None,
+        "finished_at": None,
+        "error": None,
+        "raw_answers_count": None,
+        "target_count": payload.target_count,
+        "expected_updated_at": expected_updated_at,
+        "payload": payload_data,
+    }
+
+
+def get_existing_question_entry(question: str) -> dict[str, Any] | None:
+    for entry in load_db(DB_PATH):
+        if entry.get("question") == question:
+            return entry
+    return None
+
+
+def get_generation_status() -> dict[str, Any]:
+    status = json.loads(json.dumps(generation_job))
+    current = status.get("current")
+    if current:
+        entry = get_existing_question_entry(current.get("question", ""))
+        if entry is not None:
+            current["raw_answers_count"] = len(entry.get("raw_answers") or [])
+            status["raw_answers_count"] = current["raw_answers_count"]
+        status["question"] = current.get("question")
+        status["target_count"] = current.get("target_count")
+        status["started_at"] = current.get("started_at")
+        status["finished_at"] = current.get("finished_at")
+        status["error"] = current.get("error")
+    elif status.get("queue"):
+        status["status"] = "queued"
+        status["question"] = None
+        status["started_at"] = None
+        status["finished_at"] = None
+        status["error"] = None
+        status["raw_answers_count"] = None
+        status["target_count"] = None
+    return status
+
+
+def start_generation_worker() -> None:
+    global generation_worker_task
+    if generation_worker_task is None or generation_worker_task.done():
+        generation_worker_task = asyncio.create_task(run_generation_queue())
+
+
+async def enqueue_generation_jobs(jobs: list[dict[str, Any]]) -> dict[str, Any]:
+    async with generation_queue_lock:
+        generation_job["queue"].extend(jobs)
+        if not generation_job.get("current"):
+            generation_job["status"] = "queued"
+    start_generation_worker()
+    return get_generation_status()
+
+
 def reset_question_answers(question: str) -> None:
     def reset(db: list[dict[str, Any]]):
         for index, entry in enumerate(db):
@@ -431,6 +534,34 @@ def reset_question_answers(question: str) -> None:
         raise HTTPException(status_code=404, detail="Question not found")
 
     mutate_admin_db("reset-answers", reset)
+
+
+def run_renormalization(question: str, payload: FillAnswersPayload) -> None:
+    load_env_file(ROOT_DIR / ".env")
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is not configured")
+    models_config = read_json(MODELS_CONFIG_PATH, None)
+    if models_config is None:
+        raise RuntimeError(f"Models config not found: {MODELS_CONFIG_PATH}")
+    defaults = models_config["defaults"]
+    if payload.requests_per_minute is not None:
+        defaults["requests_per_minute"] = payload.requests_per_minute
+    rate_limiter = RateLimiter(defaults.get("requests_per_minute"))
+    entry = get_existing_question_entry(question)
+    if entry is None:
+        raise RuntimeError("Question was deleted or renamed before this job started")
+    raw_answers = list(entry.get("raw_answers") or [])
+    if not raw_answers:
+        raise RuntimeError("No raw answers available to normalize")
+    top_answers = normalize_answers(
+        api_key=api_key,
+        question=question,
+        raw_answers=raw_answers,
+        config=defaults,
+        rate_limiter=rate_limiter,
+    )
+    replace_top_answers(DB_PATH, question, top_answers)
 
 
 def run_generation(question: str, payload: FillAnswersPayload) -> None:
@@ -458,50 +589,94 @@ def run_generation(question: str, payload: FillAnswersPayload) -> None:
     )
 
 
-async def run_generation_job(question: str, payload: FillAnswersPayload) -> None:
-    try:
-        await asyncio.to_thread(run_generation, question, payload)
-        load_database()
-        await _broadcast_state()
-        entry = get_question_entry(DB_PATH, question)
-        generation_job.update(
-            status="completed",
-            finished_at=now_iso(),
-            raw_answers_count=len(entry.get("raw_answers") or []),
-            error=None,
-        )
-    except Exception as exc:
-        generation_job.update(status="failed", finished_at=now_iso(), error=str(exc))
+async def run_generation_queue() -> None:
+    while True:
+        async with generation_queue_lock:
+            if not generation_job["queue"]:
+                generation_job["current"] = None
+                if generation_job["status"] in {"queued", "running"}:
+                    generation_job["status"] = "idle"
+                return
+            job = generation_job["queue"].pop(0)
+            job["status"] = "running"
+            job["started_at"] = now_iso()
+            generation_job.update(
+                status="running",
+                current=job,
+                question=job["question"],
+                started_at=job["started_at"],
+                finished_at=None,
+                error=None,
+                raw_answers_count=None,
+                target_count=job.get("target_count"),
+            )
+
+        try:
+            question = job["question"]
+            existing_entry = get_existing_question_entry(question)
+            if existing_entry is None:
+                raise RuntimeError("Question was deleted or renamed before this job started")
+            expected_updated_at = job.get("expected_updated_at")
+            if expected_updated_at and existing_entry.get("updated_at") != expected_updated_at:
+                raise RuntimeError("Question changed after this job was queued; please enqueue it again")
+            payload = FillAnswersPayload(**job["payload"])
+            if job["type"] == "fill":
+                if payload.reset_existing:
+                    reset_question_answers(question)
+                await asyncio.to_thread(run_generation, question, payload)
+            elif job["type"] == "renormalize":
+                await asyncio.to_thread(run_renormalization, question, payload)
+            else:
+                raise RuntimeError(f"Unknown generation job type: {job['type']}")
+
+            load_database()
+            await _broadcast_state()
+            entry = get_question_entry(DB_PATH, question)
+            job.update(
+                status="completed",
+                finished_at=now_iso(),
+                raw_answers_count=len(entry.get("raw_answers") or []),
+                error=None,
+            )
+            async with generation_queue_lock:
+                generation_job["completed_jobs"] = [job, *generation_job["completed_jobs"][:19]]
+                generation_job.update(
+                    status="completed",
+                    finished_at=job["finished_at"],
+                    raw_answers_count=job["raw_answers_count"],
+                    error=None,
+                )
+        except Exception as exc:
+            job.update(status="failed", finished_at=now_iso(), error=str(exc))
+            async with generation_queue_lock:
+                generation_job["failed_jobs"] = [job, *generation_job["failed_jobs"][:19]]
+                generation_job.update(status="failed", finished_at=job["finished_at"], error=str(exc))
+        finally:
+            async with generation_queue_lock:
+                generation_job["current"] = None
 
 
 @app.post("/api/admin/questions/{index}/fill", dependencies=[Depends(verify_access)], status_code=202)
 async def fill_admin_question(index: int, payload: FillAnswersPayload):
-    if generation_job["status"] == "running":
-        raise HTTPException(status_code=409, detail="Another generation job is already running")
     db = load_db(DB_PATH)
     entry = validate_index(db, index)
-    question = entry.get("question", "")
-    if payload.reset_existing:
-        reset_question_answers(question)
-    generation_job.update(
-        status="running",
-        question=question,
-        started_at=now_iso(),
-        finished_at=None,
-        error=None,
-        raw_answers_count=len(entry.get("raw_answers") or []),
-        target_count=payload.target_count,
-    )
-    asyncio.create_task(run_generation_job(question, payload))
-    return generation_job
+    job = make_generation_queue_item("fill", index, entry.get("question", ""), payload, entry.get("updated_at"))
+    return await enqueue_generation_jobs([job])
+
+
+@app.post("/api/admin/questions/{index}/renormalize", dependencies=[Depends(verify_access)], status_code=202)
+async def renormalize_admin_question(index: int, payload: FillAnswersPayload):
+    db = load_db(DB_PATH)
+    entry = validate_index(db, index)
+    if not entry.get("raw_answers"):
+        raise HTTPException(status_code=400, detail="This question has no raw answers to normalize")
+    job = make_generation_queue_item("renormalize", index, entry.get("question", ""), payload, entry.get("updated_at"))
+    return await enqueue_generation_jobs([job])
 
 
 @app.get("/api/admin/generation-job", dependencies=[Depends(verify_access)])
 async def get_generation_job():
-    if generation_job["question"]:
-        entry = get_question_entry(DB_PATH, generation_job["question"])
-        generation_job["raw_answers_count"] = len(entry.get("raw_answers") or [])
-    return generation_job
+    return get_generation_status()
 
 
 def _reset_round_state() -> None:

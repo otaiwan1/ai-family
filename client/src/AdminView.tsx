@@ -38,8 +38,26 @@ interface QuestionDetail extends QuestionSummary {
 }
 
 interface GenerationJob {
-  status: 'idle' | 'running' | 'completed' | 'failed';
+  status: 'idle' | 'queued' | 'running' | 'completed' | 'failed';
+  current: GenerationQueueItem | null;
+  queue: GenerationQueueItem[];
+  completed_jobs: GenerationQueueItem[];
+  failed_jobs: GenerationQueueItem[];
   question: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  error: string | null;
+  raw_answers_count: number | null;
+  target_count: number | null;
+}
+
+interface GenerationQueueItem {
+  id: string;
+  type: 'fill' | 'renormalize';
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  index: number;
+  question: string;
+  queued_at: string;
   started_at: string | null;
   finished_at: string | null;
   error: string | null;
@@ -154,25 +172,28 @@ const AdminView = () => {
     return () => window.clearTimeout(timer);
   }, [loadJob, loadQuestions]);
 
+  const queueActive = job?.status === 'running' || job?.status === 'queued';
+
   useEffect(() => {
-    if (job?.status !== 'running') return;
+    if (!queueActive) return;
     const timer = window.setInterval(async () => {
       try {
         const response = await adminFetch('/api/admin/generation-job');
         const nextJob: GenerationJob = await response.json();
         setJob(nextJob);
-        if (nextJob.status === 'completed') {
-          setNotice({ type: 'success', text: `AI 已補齊 ${nextJob.raw_answers_count} 筆回答並更新分布` });
+        if (nextJob.status === 'completed' && !nextJob.queue.length && !nextJob.current) {
+          setNotice({ type: 'success', text: 'AI Queue 已完成，題目與分布已更新' });
           await loadQuestions(selectedIndex);
-        } else if (nextJob.status === 'failed') {
-          setNotice({ type: 'error', text: nextJob.error || 'AI 補齊失敗' });
+        } else if (nextJob.status === 'failed' && !nextJob.queue.length && !nextJob.current) {
+          setNotice({ type: 'error', text: nextJob.error || 'AI Queue 有工作失敗' });
+          await loadQuestions(selectedIndex);
         }
       } catch (error) {
         setNotice({ type: 'error', text: error instanceof Error ? error.message : '無法更新 AI 工作狀態' });
       }
     }, 1500);
     return () => window.clearInterval(timer);
-  }, [adminFetch, job?.status, loadQuestions, selectedIndex]);
+  }, [adminFetch, queueActive, loadQuestions, selectedIndex]);
 
   const filteredQuestions = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -184,6 +205,7 @@ const AdminView = () => {
   }, [questions, search]);
 
   const pointsTotal = answers.reduce((sum, answer) => sum + (Number(answer.count) || 0), 0);
+  const runningQuestion = job?.current?.status === 'running' ? job.current.question : null;
 
   function startNewQuestion(checkDirty = true) {
     if (checkDirty && dirty && !window.confirm('目前修改尚未儲存，確定要建立新題目？')) return;
@@ -289,9 +311,38 @@ const AdminView = () => {
         }),
       });
       setJob(await response.json());
-      setNotice({ type: 'success', text: 'AI 補齊工作已開始，可以繼續編輯其他題目' });
+      setNotice({ type: 'success', text: 'AI 補齊工作已排入 Queue，可以繼續編輯其他題目' });
     } catch (error) {
       setNotice({ type: 'error', text: error instanceof Error ? error.message : '無法啟動 AI 補齊' });
+    }
+  }
+
+  async function startRenormalize() {
+    if (selectedIndex === null) {
+      setNotice({ type: 'error', text: '請先選擇要重新計算分布的題目' });
+      return;
+    }
+    if (dirty) {
+      setNotice({ type: 'error', text: '請先儲存目前修改，再重新計算分布' });
+      return;
+    }
+    if (!rawAnswersCount) {
+      setNotice({ type: 'error', text: '這題還沒有 raw answers，無法重新計算分布' });
+      return;
+    }
+    try {
+      const response = await adminFetch(`/api/admin/questions/${selectedIndex}/renormalize`, {
+        method: 'POST',
+        body: JSON.stringify({
+          target_count: Math.max(rawAnswersCount, 1),
+          renormalize: true,
+          reset_existing: false,
+        }),
+      });
+      setJob(await response.json());
+      setNotice({ type: 'success', text: '重新計算分布已排入 AI Queue' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error instanceof Error ? error.message : '無法重新計算分布' });
     }
   }
 
@@ -371,6 +422,7 @@ const AdminView = () => {
                 <div className="mt-2 flex gap-3 text-xs text-[#65717f]">
                   <span>{item.top_answers.length} 選項</span>
                   <span>{item.raw_answers_count} raw</span>
+                  {runningQuestion === item.question && <span className="font-bold text-[#136f63]">生成中</span>}
                 </div>
               </button>
             ))}
@@ -452,11 +504,22 @@ const AdminView = () => {
               <div className="flex flex-wrap items-start justify-between gap-4 px-4 py-4">
                 <div>
                   <div className="flex items-center gap-2 font-bold text-[#145c52]"><Sparkles className="h-5 w-5" /> AI 補齊回答</div>
-                  <p className="mt-1 text-sm text-[#476b66]">目前 {rawAnswersCount} 筆 raw answers。工作在背景執行，可以繼續編輯其他題目。</p>
-                  {job?.status === 'running' && (
+                  <p className="mt-1 text-sm text-[#476b66]">目前 {rawAnswersCount} 筆 raw answers。補齊與重新計算分布會排入 Queue，可以繼續編輯其他題目。</p>
+                  {job?.current && (
                     <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#145c52]">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      {job.question}: {job.raw_answers_count ?? 0} / {job.target_count}
+                      {job.current.type === 'renormalize' ? '重新計算分布' : '補齊回答'}：{job.current.question}
+                      {job.current.type === 'fill' && <> ({job.raw_answers_count ?? 0} / {job.current.target_count})</>}
+                    </div>
+                  )}
+                  {!!job?.queue.length && (
+                    <div className="mt-2 text-xs text-[#476b66]">
+                      等待中 {job.queue.length} 題：{job.queue.slice(0, 3).map((item) => item.question).join('、')}{job.queue.length > 3 ? '...' : ''}
+                    </div>
+                  )}
+                  {!!job?.failed_jobs.length && (
+                    <div className="mt-2 text-xs font-semibold text-[#9b2525]">
+                      最近失敗：{job.failed_jobs[0].question} - {job.failed_jobs[0].error}
                     </div>
                   )}
                 </div>
@@ -466,8 +529,11 @@ const AdminView = () => {
                   </label>
                   <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" checked={renormalize} onChange={(event) => setRenormalize(event.target.checked)} /> 重新計算分布</label>
                   <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" checked={resetExisting} onChange={(event) => setResetExisting(event.target.checked)} /> 先清空舊回答</label>
-                  <button type="button" disabled={job?.status === 'running'} onClick={() => void startFill()} className="flex items-center gap-2 bg-[#136f63] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0f5d53] disabled:opacity-50">
-                    {job?.status === 'running' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} 開始補齊
+                  <button type="button" onClick={() => void startRenormalize()} className="flex items-center gap-2 border border-[#9fbab5] bg-white px-4 py-2.5 text-sm font-bold text-[#136f63] hover:bg-[#eaf4f2]">
+                    <RefreshCw className="h-4 w-4" /> 重新計算分布
+                  </button>
+                  <button type="button" onClick={() => void startFill()} className="flex items-center gap-2 bg-[#136f63] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0f5d53]">
+                    <Sparkles className="h-4 w-4" /> 排入補齊
                   </button>
                 </div>
               </div>

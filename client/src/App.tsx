@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Volume2, XCircle } from 'lucide-react';
+import { CheckCircle2, Shuffle, Volume2, XCircle } from 'lucide-react';
 import socket, { connectAuthenticatedSocket } from './socket';
 import AdminView from './AdminView';
 import AuthGate from './AuthGate';
@@ -73,7 +73,17 @@ const AudienceView = () => {
     }
     setAudioError('');
     setAudioEnabled(true);
-    await playCorrectSound();
+  }
+
+  async function previewAudienceSound(type: 'correct' | 'strike') {
+    const unlocked = await unlockGameAudio();
+    if (!unlocked) {
+      setAudioError('瀏覽器仍封鎖音效，請確認此分頁沒有被設為靜音後再試一次。');
+      return;
+    }
+    setAudioError('');
+    if (type === 'correct') await playCorrectSound();
+    if (type === 'strike') await playStrikeSound();
   }
 
   if (!audioEnabled) {
@@ -84,6 +94,14 @@ const AudienceView = () => {
           <h1 className="mt-5 text-3xl font-black">Audience 音效</h1>
           <p className="mt-3 text-base leading-7 text-blue-200">瀏覽器需要一次點擊才能播放答對與 X 的遊戲音效。</p>
           {audioError && <p className="mt-3 text-sm font-semibold text-red-300">{audioError}</p>}
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button type="button" onClick={() => void previewAudienceSound('correct')} className="flex items-center justify-center gap-2 border border-emerald-400 bg-emerald-950 px-3 py-3 font-bold text-emerald-200 hover:bg-emerald-900">
+              <CheckCircle2 className="h-5 w-5" /> 試聽答對
+            </button>
+            <button type="button" onClick={() => void previewAudienceSound('strike')} className="flex items-center justify-center gap-2 border border-red-400 bg-red-950 px-3 py-3 font-bold text-red-200 hover:bg-red-900">
+              <XCircle className="h-5 w-5" /> 試聽 X
+            </button>
+          </div>
           <button type="button" onClick={() => void enableAudienceAudio()} className="mt-6 flex w-full items-center justify-center gap-2 bg-[#137c70] px-5 py-4 text-lg font-bold hover:bg-[#189486]">
             <Volume2 className="h-5 w-5" /> 啟用音效並進入題板
           </button>
@@ -207,6 +225,13 @@ const HostView = () => {
                 <button onClick={() => socket.emit('prev_question')} className="flex-1 bg-zinc-800 hover:bg-zinc-700 py-3 rounded font-bold border border-zinc-700 text-sm">PREV Q</button>
                 <button onClick={() => socket.emit('next_question')} className="flex-1 bg-blue-700 hover:bg-blue-600 py-3 rounded font-bold border border-blue-500 shadow-[0_0_15px_rgba(0,100,255,0.4)] text-sm">NEXT Q</button>
              </div>
+             <button
+               type="button"
+               onClick={() => socket.emit('random_question')}
+               className="mb-3 flex w-full items-center justify-center gap-2 rounded border border-cyan-500 bg-cyan-950 py-3 text-sm font-bold text-cyan-100 shadow-[0_0_15px_rgba(0,210,255,0.18)] hover:bg-cyan-900"
+             >
+               <Shuffle className="h-4 w-4" /> RANDOM Q
+             </button>
              <select 
                className="w-full bg-zinc-800 text-zinc-200 border border-zinc-700 rounded p-2 text-sm"
                value={hostState.current_question_idx}
